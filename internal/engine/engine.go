@@ -120,22 +120,24 @@ func (mu *Engine) Run(ctx context.Context) report.Results {
 }
 
 func (mu *Engine) runOnFile(fileName string) {
-	src, _ := mu.fs.Open(fileName)
-	set := token.NewFileSet()
-	file, _ := parser.ParseFile(set, fileName, src, parser.ParseComments)
-	_ = src.Close()
+    src, _ := mu.fs.Open(fileName)
+    defer src.Close()
 
-	ast.Inspect(file, func(node ast.Node) bool {
-		n, ok := NewTokenNode(node)
-		if !ok {
-			return true
-		}
-		mu.findMutations(fileName, set, file, n)
+    set := token.NewFileSet()
 
-		return true
-	})
+		absPath := filepath.Join(mu.module.CallingDir, fileName)
+    file, _ := parser.ParseFile(set, absPath, src, parser.ParseComments)
+
+    ast.Inspect(file, func(node ast.Node) bool {
+        n, ok := NewTokenNode(node)
+        if !ok {
+            return true
+        }
+        mu.findMutations(absPath, set, file, n)
+
+        return true
+    })
 }
-
 func (mu *Engine) findMutations(fileName string, set *token.FileSet, file *ast.File, node *NodeToken) {
 	mutantTypes, ok := TokenMutantType[node.Tok()]
 	if !ok {
@@ -148,7 +150,7 @@ func (mu *Engine) findMutations(fileName string, set *token.FileSet, file *ast.F
 			return
 		}
 		mutantType := mt
-		tm := NewTokenMutant(pkg, set, file, node)
+    tm := NewTokenMutant(pkg, set, file, node)
 		tm.SetType(mutantType)
 		tm.SetStatus(mu.mutationStatus(set.Position(node.TokPos)))
 
