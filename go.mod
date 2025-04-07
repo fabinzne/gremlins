@@ -1,4 +1,4 @@
-module github.com/go-gremlins/gremlins
+module github.com/fabinzne/gremlins
 
 go 1.22
 
